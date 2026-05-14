@@ -1,0 +1,46 @@
+CREATE TABLE Orders (
+    id           TEXT PRIMARY KEY,
+    orderNumber  TEXT NOT NULL,
+    branchId     TEXT NOT NULL,
+    cashierId    TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'DRAFT',
+    discountBps  INTEGER NOT NULL DEFAULT 0,
+    createdAtMs  INTEGER NOT NULL,
+    paidAtMs     INTEGER,
+    syncState    TEXT NOT NULL DEFAULT 'PENDING'
+);
+
+CREATE INDEX order_sync_idx ON Orders(syncState);
+
+CREATE TABLE OrderItems (
+    orderId      TEXT NOT NULL,
+    productId    TEXT NOT NULL,
+    productName  TEXT NOT NULL,
+    unitMinor    INTEGER NOT NULL,
+    taxBps       INTEGER NOT NULL,
+    quantity     INTEGER NOT NULL,
+    PRIMARY KEY (orderId, productId),
+    FOREIGN KEY (orderId) REFERENCES Orders(id) ON DELETE CASCADE
+);
+
+selectPendingSync:
+SELECT * FROM Orders
+WHERE status = 'PAID' AND syncState IN ('PENDING', 'FAILED')
+ORDER BY createdAtMs ASC;
+
+upsertOrder:
+INSERT OR REPLACE INTO Orders (id, orderNumber, branchId, cashierId, status, discountBps, createdAtMs, paidAtMs, syncState)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateSyncState:
+UPDATE Orders SET syncState = :state WHERE id = :id;
+
+selectItemsForOrder:
+SELECT * FROM OrderItems WHERE orderId = :orderId;
+
+deleteItemsForOrder:
+DELETE FROM OrderItems WHERE orderId = :orderId;
+
+insertItem:
+INSERT INTO OrderItems (orderId, productId, productName, unitMinor, taxBps, quantity)
+VALUES (?, ?, ?, ?, ?, ?);

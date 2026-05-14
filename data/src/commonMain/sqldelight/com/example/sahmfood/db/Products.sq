@@ -1,0 +1,23 @@
+CREATE TABLE Products (
+    id          TEXT PRIMARY KEY,
+    sku         TEXT NOT NULL UNIQUE,
+    name        TEXT NOT NULL,
+    priceMinor  INTEGER NOT NULL,
+    taxBps      INTEGER NOT NULL DEFAULT 1400,
+    category    TEXT NOT NULL DEFAULT 'General',
+    available   INTEGER AS kotlin.Boolean NOT NULL DEFAULT 1
+);
+
+CREATE INDEX product_category_idx ON Products(category);
+
+selectAll:
+SELECT * FROM Products
+WHERE available = 1
+ORDER BY category, name;
+
+countAll:
+SELECT COUNT(*) FROM Products;
+
+upsert:
+INSERT OR REPLACE INTO Products (id, sku, name, priceMinor, taxBps, category, available)
+VALUES (?, ?, ?, ?, ?, ?, ?);
