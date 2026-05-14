@@ -1,13 +1,12 @@
 package com.example.sahmfood
 
-import androidx.compose.ui.window.ComposeUIViewController
+import android.app.Application
 import com.example.sahmfood.data.DatabaseFactory
 import com.example.sahmfood.data.mockUpload
 import com.example.sahmfood.di.initKoin
 import com.example.sahmfood.domain.Money
 import com.example.sahmfood.domain.PosRepository
 import com.example.sahmfood.domain.Product
-import com.example.sahmfood.ui.App
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
@@ -16,28 +15,30 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.get
+import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
-import org.koin.mp.KoinPlatform
-import platform.UIKit.UIViewController
 
-/** Entry للـ Swift: MainViewControllerKt.MainViewController() */
-private var started = false
-
-fun MainViewController(): UIViewController {
-    if (!started) {
+class PosApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
         Napier.base(DebugAntilog())
-        initKoin { modules(module { single { DatabaseFactory() } }) }
-        val repo = KoinPlatform.getKoin().get<PosRepository>()
-        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+
+        initKoin {
+            androidContext(this@PosApplication)
+            modules(module { single { DatabaseFactory(get()) } })
+        }
+
+        val repo = get<PosRepository>()
+        val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        appScope.launch {
             repo.seedIfEmpty(demoMenu())
             while (isActive) {
                 repo.trySyncPending(::mockUpload)
                 delay(5_000)
             }
         }
-        started = true
     }
-    return ComposeUIViewController { App() }
 }
 
 private fun demoMenu(): List<Product> = listOf(
