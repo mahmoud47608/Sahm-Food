@@ -35,6 +35,8 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(projects.shared)
+            implementation(projects.data)
+            implementation(projects.domain)
 
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
