@@ -6,12 +6,9 @@ plugins {
 }
 
 kotlin {
-    androidTarget {
-        compilations.all {
-            @Suppress("DEPRECATION")
-            kotlinOptions.jvmTarget = "11"
-        }
-    }
+    jvmToolchain(11)
+
+    androidTarget()
 
     listOf(
         iosArm64(),

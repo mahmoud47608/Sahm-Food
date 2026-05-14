@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.buildtools.api.arguments.enums.JvmTarget
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
@@ -7,11 +5,9 @@ plugins {
 }
 
 kotlin {
-    androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
-        }
-    }
+    jvmToolchain(11)
+
+    androidTarget()
 
     listOf(
         iosArm64(),
