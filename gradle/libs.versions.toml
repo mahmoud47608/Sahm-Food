@@ -14,6 +14,14 @@ junit = "4.13.2"
 kotlin = "2.3.21"
 material3 = "1.10.0-alpha05"
 
+kotlinx-coroutines = "1.10.2"
+kotlinx-datetime = "0.6.2"
+kotlinx-serialization = "1.8.0"
+koin = "4.0.4"
+sqldelight = "2.0.2"
+napier = "2.7.1"
+turbine = "1.2.0"
+
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -33,9 +41,30 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMul
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 
+kotlinx-coroutines-core    = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core",    version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-test    = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test",    version.ref = "kotlinx-coroutines" }
+kotlinx-datetime           = { module = "org.jetbrains.kotlinx:kotlinx-datetime",           version.ref = "kotlinx-datetime" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+koin-core              = { module = "io.insert-koin:koin-core",              version.ref = "koin" }
+koin-compose           = { module = "io.insert-koin:koin-compose",           version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+koin-android           = { module = "io.insert-koin:koin-android",           version.ref = "koin" }
+
+sqldelight-runtime               = { module = "app.cash.sqldelight:runtime",               version.ref = "sqldelight" }
+sqldelight-coroutines-extensions = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-android-driver        = { module = "app.cash.sqldelight:android-driver",        version.ref = "sqldelight" }
+sqldelight-native-driver         = { module = "app.cash.sqldelight:native-driver",         version.ref = "sqldelight" }
+
+napier  = { module = "io.github.aakira:napier",   version.ref = "napier" }
+turbine = { module = "app.cash.turbine:turbine",  version.ref = "turbine" }
+
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+sqldelight          = { id = "app.cash.sqldelight",                       version.ref = "sqldelight" }
