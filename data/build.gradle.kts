@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.buildtools.api.arguments.enums.JvmTarget
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
