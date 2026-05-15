@@ -2,6 +2,7 @@ package com.example.sahmfood.domain
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlin.random.Random
 
 data class Product(
     val id: String,
@@ -83,5 +84,31 @@ data class Order(
         check(status == OrderStatus.DRAFT)
         require(!isEmpty) { "Cannot pay an empty order" }
         return copy(status = OrderStatus.PAID, paidAt = now)
+    }
+
+    companion object {
+        /**
+         * إنشاء order جديد بحالة DRAFT.
+         *
+         * الـ id بيتولد client-side بـ 128-bit randomness (32 hex chars)
+         * عشان (أ) collision probability زهيدة جداً حتى عبر آلاف الفروع،
+         *      (ب) يصلح كـ idempotency key مع السيرفر، فلو تايم-اوت حصل
+         *          بعد ما السيرفر استلم الـ order، الـ retry بنفس الـ id
+         *          مش هيعمل double-charge.
+         */
+        fun newDraft(branchId: String, cashierId: String, now: Instant = Clock.System.now()): Order =
+            Order(
+                id = newOrderId(),
+                orderNumber = newOrderNumber(),
+                branchId = branchId,
+                cashierId = cashierId,
+                createdAt = now,
+            )
+
+        private fun newOrderId(): String =
+            (1..32).joinToString("") { Random.nextInt(16).toString(16) }
+
+        private fun newOrderNumber(): String =
+            "A" + Random.nextInt(1000, 9999).toString()
     }
 }
