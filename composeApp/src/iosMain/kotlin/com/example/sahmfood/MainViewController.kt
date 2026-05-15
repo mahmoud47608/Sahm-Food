@@ -2,19 +2,16 @@ package com.example.sahmfood
 
 import androidx.compose.ui.window.ComposeUIViewController
 import com.example.sahmfood.data.DatabaseFactory
-import com.example.sahmfood.data.mockUpload
+import com.example.sahmfood.data.seedMenu
 import com.example.sahmfood.di.initKoin
-import com.example.sahmfood.domain.Money
 import com.example.sahmfood.domain.PosRepository
-import com.example.sahmfood.domain.Product
+import com.example.sahmfood.sync.SyncManager
 import com.example.sahmfood.ui.App
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
@@ -22,33 +19,18 @@ import platform.UIKit.UIViewController
 
 /** Entry للـ Swift: MainViewControllerKt.MainViewController() */
 private var started = false
+private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
 fun MainViewController(): UIViewController {
     if (!started) {
         Napier.base(DebugAntilog())
         initKoin { modules(module { single { DatabaseFactory() } }) }
-        val repo = KoinPlatform.getKoin().get<PosRepository>()
-        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            repo.seedIfEmpty(demoMenu())
-            while (isActive) {
-                repo.trySyncPending(::mockUpload)
-                delay(5_000)
-            }
-        }
+
+        val koin = KoinPlatform.getKoin()
+        appScope.launch { koin.get<PosRepository>().seedIfEmpty(seedMenu()) }
+        koin.get<SyncManager>().startBackgroundLoop(appScope)
+
         started = true
     }
     return ComposeUIViewController { App() }
 }
-
-private fun demoMenu(): List<Product> = listOf(
-    Product("p-001", "BURG-CLAS", "Classic Burger",         Money.of(95.00),  category = "Burgers"),
-    Product("p-002", "BURG-DBLB", "Double Cheese Burger",   Money.of(135.00), category = "Burgers"),
-    Product("p-003", "BURG-CHKN", "Crispy Chicken Burger",  Money.of(85.00),  category = "Burgers"),
-    Product("p-010", "PIZZ-MAR",  "Margherita Pizza",       Money.of(155.00), category = "Pizza"),
-    Product("p-011", "PIZZ-PEP",  "Pepperoni Pizza",        Money.of(180.00), category = "Pizza"),
-    Product("p-020", "SIDE-FRY",  "French Fries",           Money.of(35.00),  category = "Sides"),
-    Product("p-021", "SIDE-RNG",  "Onion Rings",            Money.of(40.00),  category = "Sides"),
-    Product("p-030", "DRK-COKE",  "Coca-Cola 330ml",        Money.of(20.00),  category = "Drinks"),
-    Product("p-031", "DRK-WATR",  "Water 500ml",            Money.of(10.00),  category = "Drinks"),
-    Product("p-040", "DST-BROW",  "Chocolate Brownie",      Money.of(55.00),  category = "Desserts"),
-)

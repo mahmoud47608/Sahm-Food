@@ -2,11 +2,11 @@ package com.example.sahmfood.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sahmfood.data.mockUpload
 import com.example.sahmfood.domain.Order
 import com.example.sahmfood.domain.PosRepository
 import com.example.sahmfood.domain.Product
 import com.example.sahmfood.domain.ReceiptPrinter
+import com.example.sahmfood.sync.SyncManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,11 +14,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 
 class PosViewModel(
     private val repo: PosRepository,
     private val printer: ReceiptPrinter,
+    private val syncManager: SyncManager,
 ) : ViewModel() {
 
     data class UiState(
@@ -60,7 +60,6 @@ class PosViewModel(
 
     fun applyDiscount(percent: Int) =
         _state.update { it.copy(order = it.order.applyDiscount(percent)) }
-
     fun payCash() {
         val order = _state.value.order
         if (order.isEmpty) {
@@ -70,7 +69,7 @@ class PosViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isPaying = true) }
             val paid = order.markPaid()
-            repo.saveOrder(paid)                  // save محلياً FIRST
+            repo.saveOrder(paid)
             val receipt = printer.print(paid)
             _state.update {
                 it.copy(
@@ -79,7 +78,7 @@ class PosViewModel(
                     order = newDraftOrder(),
                 )
             }
-            launch { repo.trySyncPending(::mockUpload) }  // best-effort
+            launch { syncManager.syncNow() }
         }
     }
 
@@ -87,11 +86,6 @@ class PosViewModel(
     fun consumeMessage() = _state.update { it.copy(message = null) }
 
     companion object {
-        private fun newDraftOrder() = Order(
-            id = (1..16).joinToString("") { Random.nextInt(16).toString(16) },
-            orderNumber = "A" + Random.nextInt(1000, 9999).toString(),
-            branchId = "BR-001",
-            cashierId = "C-001",
-        )
+        private fun newDraftOrder() = Order.newDraft(branchId = "BR-001", cashierId = "C-001")
     }
 }

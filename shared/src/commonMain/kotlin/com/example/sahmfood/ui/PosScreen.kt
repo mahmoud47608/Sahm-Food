@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.sahmfood.domain.OrderItem
@@ -64,11 +65,11 @@ fun PosScreen(vm: PosViewModel = koinViewModel()) {
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Row(Modifier.fillMaxSize().padding(padding)) {
-            Column(Modifier.weight(2f).padding(12.dp)) {
+            Column(Modifier.weight(1.3f).padding(12.dp)) {
                 CategoryStrip(state.categories, state.category, vm::selectCategory)
                 Spacer(Modifier.height(12.dp))
                 LazyVerticalGrid(
-                    columns = GridCells.Adaptive(160.dp),
+                    columns = GridCells.Adaptive(140.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -77,8 +78,8 @@ fun PosScreen(vm: PosViewModel = koinViewModel()) {
                     }
                 }
             }
-            CartPanel(state, vm, Modifier.weight(1.2f).fillMaxHeight()
-                .background(MaterialTheme.colorScheme.surface).padding(12.dp))
+            CartPanel(state, vm, Modifier.weight(1f).widthIn(min = 320.dp).fillMaxHeight()
+                .background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp))
         }
     }
 
@@ -100,9 +101,9 @@ private fun CategoryStrip(categories: List<String>, selected: String?, onSelect:
 
 @Composable
 private fun ProductCard(product: Product, onAdd: () -> Unit) {
-    Card(onClick = onAdd, modifier = Modifier.fillMaxWidth().height(110.dp)) {
+    Card(onClick = onAdd, modifier = Modifier.fillMaxWidth().height(96.dp)) {
         Column(Modifier.fillMaxWidth().padding(10.dp), Arrangement.SpaceBetween) {
-            Text(product.name, style = MaterialTheme.typography.titleSmall,
+            Text(product.name, style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold, maxLines = 2)
             Text(product.price.formatted(),
                 color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
@@ -114,7 +115,18 @@ private fun ProductCard(product: Product, onAdd: () -> Unit) {
 private fun CartPanel(state: PosViewModel.UiState, vm: PosViewModel, modifier: Modifier) {
     val order = state.order
     Column(modifier) {
-        Text("Cart", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("Cart", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            if (!order.isEmpty) {
+                Text("${order.itemCount} item${if (order.itemCount > 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         Spacer(Modifier.height(12.dp))
 
         if (order.isEmpty) {
@@ -122,7 +134,7 @@ private fun CartPanel(state: PosViewModel.UiState, vm: PosViewModel, modifier: M
                 Text("No items yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(order.items, key = { it.productId }) { item ->
                     CartItemRow(
                         item,
@@ -162,18 +174,52 @@ private fun CartPanel(state: PosViewModel.UiState, vm: PosViewModel, modifier: M
 
 @Composable
 private fun CartItemRow(item: OrderItem, onInc: () -> Unit, onDec: () -> Unit, onRemove: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(item.productName, fontWeight = FontWeight.Medium, maxLines = 1)
-            Text("${item.unitPrice.formatted()} × ${item.quantity}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        IconButton(onDec, Modifier.size(36.dp)) { Icon(Icons.Filled.Remove, "decrease") }
-        Text(item.quantity.toString(), Modifier.width(24.dp), fontWeight = FontWeight.Bold)
-        IconButton(onInc, Modifier.size(36.dp)) { Icon(Icons.Filled.Add, "increase") }
-        IconButton(onRemove, Modifier.size(36.dp)) {
-            Icon(Icons.Filled.Close, "remove", tint = MaterialTheme.colorScheme.error)
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(12.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(item.productName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2)
+                    Spacer(Modifier.height(2.dp))
+                    Text(item.unitPrice.formatted(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onRemove, Modifier.size(32.dp)) {
+                    Icon(Icons.Filled.Close, "remove",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp))
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FilledTonalIconButton(onDec, Modifier.size(36.dp)) {
+                        Icon(Icons.Filled.Remove, "decrease", modifier = Modifier.size(18.dp))
+                    }
+                    Text(item.quantity.toString(),
+                        modifier = Modifier.widthIn(min = 40.dp).padding(horizontal = 8.dp),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium)
+                    FilledTonalIconButton(onInc, Modifier.size(36.dp)) {
+                        Icon(Icons.Filled.Add, "increase", modifier = Modifier.size(18.dp))
+                    }
+                }
+                Text(item.lineTotal.formatted(),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleMedium)
+            }
         }
     }
 }

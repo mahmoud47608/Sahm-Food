@@ -12,6 +12,7 @@ import com.example.sahmfood.domain.OrderItem
 import com.example.sahmfood.domain.OrderStatus
 import com.example.sahmfood.domain.PosRepository
 import com.example.sahmfood.domain.Product
+import com.example.sahmfood.domain.SyncReport
 import com.example.sahmfood.domain.SyncState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -65,19 +66,25 @@ class PosRepositoryImpl(private val db: SahmFoodDatabase) : PosRepository {
             }
         }
 
-    override suspend fun trySyncPending(upload: suspend (Order) -> Result<Unit>): Int =
+    override suspend fun trySyncPending(upload: suspend (Order) -> Result<Unit>): SyncReport =
         withContext(Dispatchers.Default) {
             val pending = orders.selectPendingSync().executeAsList().map { row ->
                 val items = orders.selectItemsForOrder(row.id).executeAsList().map { it.toDomain() }
                 row.toDomain(items)
             }
-            var synced = 0
+            if (pending.isEmpty()) return@withContext SyncReport.IDLE
+
+            var ok = 0
+            var fail = 0
             for (order in pending) {
-                val state = if (upload(order).isSuccess) SyncState.SYNCED else SyncState.FAILED
-                orders.updateSyncState(state.name, order.id)
-                if (state == SyncState.SYNCED) synced++
+                val success = upload(order).isSuccess
+                orders.updateSyncState(
+                    if (success) SyncState.SYNCED.name else SyncState.FAILED.name,
+                    order.id,
+                )
+                if (success) ok++ else fail++
             }
-            synced
+            SyncReport(attempted = pending.size, succeeded = ok, failed = fail)
         }
 }
 

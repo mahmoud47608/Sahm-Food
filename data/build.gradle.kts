@@ -30,6 +30,7 @@ kotlin {
             implementation(libs.sqldelight.coroutines.extensions)
 
             implementation(libs.koin.core)
+            implementation(libs.napier)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
