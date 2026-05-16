@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.sahmfood.domain.OrderItem
 import com.example.sahmfood.domain.Product
-import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.KoinContext
+import org.koin.compose.koinInject
 
 // ============== Theme ==============
 
@@ -46,13 +47,13 @@ fun SahmTheme(content: @Composable () -> Unit) {
 // ============== App entry ==============
 
 @Composable
-fun App() = SahmTheme { PosScreen() }
+fun App() = KoinContext { SahmTheme { PosScreen() } }
 
 // ============== Screen ==============
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PosScreen(vm: PosViewModel = koinViewModel()) {
+fun PosScreen(vm: PosViewModel = koinInject()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 

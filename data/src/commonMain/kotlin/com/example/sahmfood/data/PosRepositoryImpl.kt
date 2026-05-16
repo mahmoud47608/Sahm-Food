@@ -18,13 +18,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
-/**
- *  - منتجات: read-only (نزرعها مرة عند بدء التشغيل).
- *  - orders: save محلياً FIRST بـ syncState = PENDING (offline-first).
- *  - trySyncPending يحاول يرفع الـ orders، callback بسيط للـ upload.
- */
+
 class PosRepositoryImpl(private val db: SahmFoodDatabase) : PosRepository {
 
     private val products get() = db.productsQueries

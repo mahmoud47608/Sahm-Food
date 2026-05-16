@@ -1,7 +1,8 @@
 package com.example.sahmfood.domain
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Clock.System
+import kotlin.time.Instant
 import kotlin.random.Random
 
 data class Product(
@@ -87,15 +88,6 @@ data class Order(
     }
 
     companion object {
-        /**
-         * إنشاء order جديد بحالة DRAFT.
-         *
-         * الـ id بيتولد client-side بـ 128-bit randomness (32 hex chars)
-         * عشان (أ) collision probability زهيدة جداً حتى عبر آلاف الفروع،
-         *      (ب) يصلح كـ idempotency key مع السيرفر، فلو تايم-اوت حصل
-         *          بعد ما السيرفر استلم الـ order، الـ retry بنفس الـ id
-         *          مش هيعمل double-charge.
-         */
         fun newDraft(branchId: String, cashierId: String, now: Instant = Clock.System.now()): Order =
             Order(
                 id = newOrderId(),
