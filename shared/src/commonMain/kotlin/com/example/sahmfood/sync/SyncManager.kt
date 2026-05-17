@@ -11,6 +11,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.random.Random
 
 
 class SyncManager(
@@ -32,7 +33,9 @@ class SyncManager(
     fun startBackgroundLoop(scope: CoroutineScope): Job = scope.launch {
         var delayMs = MIN_DELAY_MS
         while (isActive) {
-            delay(delayMs)
+            val jitter = (delayMs * 0.2).toLong()
+            delay(delayMs + Random.nextLong(-jitter, jitter + 1))
+
             val report = runCatching { syncNow() }.getOrElse {
                 Napier.e(it) { "[Sync] Loop crashed, will back off" }
                 null

@@ -33,20 +33,25 @@ import com.example.sahmfood.ui.pos.components.CategoryStrip
 import com.example.sahmfood.ui.pos.components.ProductCard
 import com.example.sahmfood.ui.pos.components.ReceiptDialog
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import org.koin.compose.viewmodel.koinViewModel
 
-/**
- * Top-level POS screen — handles VM wiring, snackbar, and receipt dialog.
- *
- * The actual layout lives in [PosContent], which is stateless and
- * receives intent callbacks. This split makes the UI previewable
- * and testable without instantiating the ViewModel.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PosScreen(viewModel: PosViewModel = koinViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHost = remember { SnackbarHostState() }
+
+
+    val categories: ImmutableList<String> = remember(uiState.products) {
+        uiState.products.map { it.category }.distinct().sorted().toImmutableList()
+    }
+
+    val visibleProducts: ImmutableList<Product> = remember(uiState.products, uiState.category) {
+        val filter = uiState.category
+        if (filter == null) uiState.products
+        else uiState.products.filter { it.category == filter }.toImmutableList()
+    }
 
     LaunchedEffect(uiState.message) {
         uiState.message?.let { msg ->
@@ -63,6 +68,8 @@ fun PosScreen(viewModel: PosViewModel = koinViewModel()) {
     ) { padding ->
         PosContent(
             uiState = uiState,
+            categories = categories,
+            visibleProducts = visibleProducts,
             onSelectCategory = viewModel::selectCategory,
             onAddProduct = viewModel::addProduct,
             onChangeQuantity = viewModel::changeQuantity,
@@ -78,14 +85,11 @@ fun PosScreen(viewModel: PosViewModel = koinViewModel()) {
     }
 }
 
-/**
- * Stateless layout: menu grid on the left, cart panel on the right.
- *
- * Takes everything it needs as parameters — safe for `@Preview` and unit tests.
- */
 @Composable
 private fun PosContent(
     uiState: PosState,
+    categories: ImmutableList<String>,
+    visibleProducts: ImmutableList<Product>,
     onSelectCategory: (String?) -> Unit,
     onAddProduct: (String) -> Unit,
     onChangeQuantity: (productId: String, quantity: Int) -> Unit,
@@ -96,9 +100,9 @@ private fun PosContent(
 ) {
     Row(modifier) {
         MenuPane(
-            categories = uiState.categories,
+            categories = categories,
             selectedCategory = uiState.category,
-            products = uiState.visibleProducts,
+            products = visibleProducts,
             onSelectCategory = onSelectCategory,
             onAddProduct = onAddProduct,
             modifier = Modifier.weight(1.3f).padding(12.dp),

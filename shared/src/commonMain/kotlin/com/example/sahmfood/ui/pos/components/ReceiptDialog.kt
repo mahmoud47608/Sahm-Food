@@ -1,4 +1,4 @@
-package com.example.sahmfood.ui.pos.components
+    package com.example.sahmfood.ui.pos.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth

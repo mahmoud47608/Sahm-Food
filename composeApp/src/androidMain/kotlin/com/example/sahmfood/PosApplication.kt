@@ -29,10 +29,8 @@ class PosApplication : Application() {
             modules(module { single { DatabaseFactory(get()) } })
         }
 
-        // (1) Seed menu — آمن للاستدعاء بشكل متكرر، بيتعمل no-op لو الـ DB فيها products.
         appScope.launch { get<PosRepository>().seedIfEmpty(seedMenu()) }
 
-        // (2) Background sync loop — بياخد مسؤولية رفع الـ pending orders.
         get<SyncManager>().startBackgroundLoop(appScope)
     }
 }

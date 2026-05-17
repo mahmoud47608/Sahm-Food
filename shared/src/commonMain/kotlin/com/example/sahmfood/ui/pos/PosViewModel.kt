@@ -6,12 +6,11 @@ import com.example.sahmfood.domain.Order
 import com.example.sahmfood.domain.PosRepository
 import com.example.sahmfood.domain.ReceiptPrinter
 import com.example.sahmfood.sync.SyncManager
+import io.github.aakira.napier.Napier
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -25,16 +24,11 @@ class PosViewModel(
     val uiState: StateFlow<PosState> = _uiState.asStateFlow()
 
     init {
-        // Stream products from the local DB into the state.
-        repository.observeProducts()
-            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-            .also { flow ->
-                viewModelScope.launch {
-                    flow.collect { products ->
-                        _uiState.update { it.copy(products = products.toImmutableList()) }
-                    }
-                }
+        viewModelScope.launch {
+            repository.observeProducts().collect { products ->
+                _uiState.update { it.copy(products = products.toImmutableList()) }
             }
+        }
     }
 
     // ─── User intents ──────────────────────────────────────
@@ -64,28 +58,33 @@ class PosViewModel(
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isPaying = true) }
-            val paid = order.markPaid()
-            repository.saveOrder(paid)
-            val receipt = printer.print(paid)
-            _uiState.update {
-                it.copy(
-                    isPaying = false,
-                    receipt = receipt,
-                    order = newDraftOrder(),
-                )
+            try {
+                val paid = order.markPaid()
+                repository.saveOrder(paid)
+                val receipt = printer.print(paid)
+                _uiState.update {
+                    it.copy(
+                        isPaying = false,
+                        receipt = receipt,
+                        order = newDraftOrder(),
+                    )
+                }
+                launch { syncManager.syncNow() }
+            } catch (e: Exception) {
+                Napier.e(e) { "[Pos] payCash failed" }
+                _uiState.update {
+                    it.copy(
+                        isPaying = false,
+                        message = "Payment failed: ${e.message ?: "unknown error"}",
+                    )
+                }
             }
-            launch { syncManager.syncNow() }
         }
     }
-
-    // ─── Consumed by UI after showing snackbar / dialog ────
 
     fun consumeMessage() = _uiState.update { it.copy(message = null) }
 
     fun consumeReceipt() = _uiState.update { it.copy(receipt = null) }
 
-    private companion object {
-        private fun newDraftOrder(): Order =
-            Order.newDraft(branchId = "BR-001", cashierId = "C-001")
-    }
+    private fun newDraftOrder(): Order = Order.newDraft(branchId = "BR-001", cashierId = "C-001")
 }
