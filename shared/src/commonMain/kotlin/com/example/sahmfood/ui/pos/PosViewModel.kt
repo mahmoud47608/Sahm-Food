@@ -1,4 +1,4 @@
-package com.example.sahmfood.ui
+package com.example.sahmfood.ui.pos
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class PosViewModel(
-    private val repo: PosRepository,
+    private val repository: PosRepository,
     private val printer: ReceiptPrinter,
     private val syncManager: SyncManager,
 ) : ViewModel() {
@@ -25,28 +25,32 @@ class PosViewModel(
     val uiState: StateFlow<PosState> = _uiState.asStateFlow()
 
     init {
-        repo.observeProducts()
+        // Stream products from the local DB into the state.
+        repository.observeProducts()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
             .also { flow ->
                 viewModelScope.launch {
-                    flow.collect { ps ->
-                        _uiState.update { it.copy(products = ps.toImmutableList()) }
+                    flow.collect { products ->
+                        _uiState.update { it.copy(products = products.toImmutableList()) }
                     }
                 }
             }
     }
 
-    fun selectCategory(c: String?) = _uiState.update { it.copy(category = c) }
+    // ─── User intents ──────────────────────────────────────
 
-    fun add(productId: String) {
+    fun selectCategory(category: String?) =
+        _uiState.update { it.copy(category = category) }
+
+    fun addProduct(productId: String) {
         val product = _uiState.value.products.firstOrNull { it.id == productId } ?: return
         _uiState.update { it.copy(order = it.order.addItem(product)) }
     }
 
-    fun changeQuantity(productId: String, qty: Int) =
-        _uiState.update { it.copy(order = it.order.changeQuantity(productId, qty)) }
+    fun changeQuantity(productId: String, quantity: Int) =
+        _uiState.update { it.copy(order = it.order.changeQuantity(productId, quantity)) }
 
-    fun remove(productId: String) =
+    fun removeProduct(productId: String) =
         _uiState.update { it.copy(order = it.order.removeItem(productId)) }
 
     fun applyDiscount(percent: Int) =
@@ -61,7 +65,7 @@ class PosViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isPaying = true) }
             val paid = order.markPaid()
-            repo.saveOrder(paid)
+            repository.saveOrder(paid)
             val receipt = printer.print(paid)
             _uiState.update {
                 it.copy(
@@ -74,7 +78,13 @@ class PosViewModel(
         }
     }
 
-    companion object {
+    // ─── Consumed by UI after showing snackbar / dialog ────
+
+    fun consumeMessage() = _uiState.update { it.copy(message = null) }
+
+    fun consumeReceipt() = _uiState.update { it.copy(receipt = null) }
+
+    private companion object {
         private fun newDraftOrder(): Order =
             Order.newDraft(branchId = "BR-001", cashierId = "C-001")
     }

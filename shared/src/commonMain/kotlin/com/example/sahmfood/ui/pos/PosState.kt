@@ -1,4 +1,4 @@
-package com.example.sahmfood.ui
+package com.example.sahmfood.ui.pos
 
 import androidx.compose.runtime.Immutable
 import com.example.sahmfood.domain.Order
@@ -7,10 +7,6 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 
-/**
- * UI state for the POS screen — fully immutable, suitable for
- * Compose `@Immutable` smart skipping.
- */
 @Immutable
 data class PosState(
     val order: Order,
