@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sahmfood.domain.Order
 import com.example.sahmfood.domain.PosRepository
-import com.example.sahmfood.domain.Product
 import com.example.sahmfood.domain.ReceiptPrinter
 import com.example.sahmfood.sync.SyncManager
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,57 +21,49 @@ class PosViewModel(
     private val syncManager: SyncManager,
 ) : ViewModel() {
 
-    data class UiState(
-        val order: Order = newDraftOrder(),
-        val products: List<Product> = emptyList(),
-        val category: String? = null,
-        val isPaying: Boolean = false,
-        val receipt: String? = null,
-        val message: String? = null,
-    ) {
-        val categories: List<String> get() = products.map { it.category }.distinct().sorted()
-        val visibleProducts: List<Product> get() =
-            if (category == null) products else products.filter { it.category == category }
-    }
-
-    private val _state = MutableStateFlow(UiState())
-    val state: StateFlow<UiState> = _state.asStateFlow()
+    private val _uiState = MutableStateFlow(PosState(order = newDraftOrder()))
+    val uiState: StateFlow<PosState> = _uiState.asStateFlow()
 
     init {
         repo.observeProducts()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
             .also { flow ->
-                viewModelScope.launch { flow.collect { ps -> _state.update { it.copy(products = ps) } } }
+                viewModelScope.launch {
+                    flow.collect { ps ->
+                        _uiState.update { it.copy(products = ps.toImmutableList()) }
+                    }
+                }
             }
     }
 
-    fun selectCategory(c: String?) = _state.update { it.copy(category = c) }
+    fun selectCategory(c: String?) = _uiState.update { it.copy(category = c) }
 
     fun add(productId: String) {
-        val product = _state.value.products.firstOrNull { it.id == productId } ?: return
-        _state.update { it.copy(order = it.order.addItem(product)) }
+        val product = _uiState.value.products.firstOrNull { it.id == productId } ?: return
+        _uiState.update { it.copy(order = it.order.addItem(product)) }
     }
 
     fun changeQuantity(productId: String, qty: Int) =
-        _state.update { it.copy(order = it.order.changeQuantity(productId, qty)) }
+        _uiState.update { it.copy(order = it.order.changeQuantity(productId, qty)) }
 
     fun remove(productId: String) =
-        _state.update { it.copy(order = it.order.removeItem(productId)) }
+        _uiState.update { it.copy(order = it.order.removeItem(productId)) }
 
     fun applyDiscount(percent: Int) =
-        _state.update { it.copy(order = it.order.applyDiscount(percent)) }
+        _uiState.update { it.copy(order = it.order.applyDiscount(percent)) }
+
     fun payCash() {
-        val order = _state.value.order
+        val order = _uiState.value.order
         if (order.isEmpty) {
-            _state.update { it.copy(message = "Cart is empty") }
+            _uiState.update { it.copy(message = "Cart is empty") }
             return
         }
         viewModelScope.launch {
-            _state.update { it.copy(isPaying = true) }
+            _uiState.update { it.copy(isPaying = true) }
             val paid = order.markPaid()
             repo.saveOrder(paid)
             val receipt = printer.print(paid)
-            _state.update {
+            _uiState.update {
                 it.copy(
                     isPaying = false,
                     receipt = receipt,
@@ -82,10 +74,8 @@ class PosViewModel(
         }
     }
 
-    fun consumeReceipt() = _state.update { it.copy(receipt = null) }
-    fun consumeMessage() = _state.update { it.copy(message = null) }
-
     companion object {
-        private fun newDraftOrder() = Order.newDraft(branchId = "BR-001", cashierId = "C-001")
+        private fun newDraftOrder(): Order =
+            Order.newDraft(branchId = "BR-001", cashierId = "C-001")
     }
 }

@@ -17,10 +17,11 @@ material3 = "1.10.0-alpha05"
 kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1"
 kotlinx-serialization = "1.8.0"
-koin = "4.0.4"
+koin = "4.1.0"
 sqldelight = "2.0.2"
 napier = "2.7.1"
 turbine = "1.2.0"
+kotlinxImmutableCollections = "0.3.8"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -60,6 +61,8 @@ sqldelight-native-driver         = { module = "app.cash.sqldelight:native-driver
 
 napier  = { module = "io.github.aakira:napier",   version.ref = "napier" }
 turbine = { module = "app.cash.turbine:turbine",  version.ref = "turbine" }
+
+kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "kotlinxImmutableCollections" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

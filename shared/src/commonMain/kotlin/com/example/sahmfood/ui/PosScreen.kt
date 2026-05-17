@@ -23,11 +23,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.sahmfood.domain.OrderItem
 import com.example.sahmfood.domain.Product
-import org.koin.compose.KoinContext
-import org.koin.compose.koinInject
+import kotlinx.collections.immutable.ImmutableList
+import org.koin.compose.viewmodel.koinViewModel
 
 // ============== Theme ==============
 
@@ -47,51 +46,95 @@ fun SahmTheme(content: @Composable () -> Unit) {
 // ============== App entry ==============
 
 @Composable
-fun App() = KoinContext { SahmTheme { PosScreen() } }
+fun App() = SahmTheme { PosScreen() }
 
 // ============== Screen ==============
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PosScreen(vm: PosViewModel = koinInject()) {
-    val state by vm.state.collectAsStateWithLifecycle()
+fun PosScreen(viewModel: PosViewModel = koinViewModel()) {
+    val uiState by viewModel.uiState.collectAsState()
     val snackbar = remember { SnackbarHostState() }
 
-    LaunchedEffect(state.message) {
-        state.message?.let { snackbar.showSnackbar(it); vm.consumeMessage() }
-    }
-
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Sahm POS  •  ${state.order.orderNumber}") }) },
-        snackbarHost = { SnackbarHost(snackbar) },
-    ) { padding ->
-        Row(Modifier.fillMaxSize().padding(padding)) {
-            Column(Modifier.weight(1.3f).padding(12.dp)) {
-                CategoryStrip(state.categories, state.category, vm::selectCategory)
-                Spacer(Modifier.height(12.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(140.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(state.visibleProducts, key = { it.id }) {
-                        ProductCard(it) { vm.add(it.id) }
-                    }
-                }
-            }
-            CartPanel(state, vm, Modifier.weight(1f).widthIn(min = 320.dp).fillMaxHeight()
-                .background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp))
+    LaunchedEffect(uiState.message) {
+        uiState.message?.let {
+            snackbar.showSnackbar(it)
+            viewModel.consumeMessage()
         }
     }
 
-    state.receipt?.let { ReceiptDialog(it, vm::consumeReceipt) }
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Sahm POS  •  ${uiState.order.orderNumber}") }) },
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
+        PosContent(
+            uiState = uiState,
+            onSelectCategory = viewModel::selectCategory,
+            onAddProduct = viewModel::add,
+            onChangeQty = viewModel::changeQuantity,
+            onRemoveItem = viewModel::remove,
+            onApplyDiscount = viewModel::applyDiscount,
+            onPayCash = viewModel::payCash,
+            modifier = Modifier.fillMaxSize().padding(padding),
+        )
+    }
+
+    uiState.receipt?.let { ReceiptDialog(it, viewModel::consumeReceipt) }
+}
+
+// ============== Stateless layout ==============
+
+@Composable
+private fun PosContent(
+    uiState: PosState,
+    onSelectCategory: (String?) -> Unit,
+    onAddProduct: (String) -> Unit,
+    onChangeQty: (String, Int) -> Unit,
+    onRemoveItem: (String) -> Unit,
+    onApplyDiscount: (Int) -> Unit,
+    onPayCash: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier) {
+        Column(Modifier.weight(1.3f).padding(12.dp)) {
+            CategoryStrip(uiState.categories, uiState.category, onSelectCategory)
+            Spacer(Modifier.height(12.dp))
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(140.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(uiState.visibleProducts, key = { it.id }) { product ->
+                    ProductCard(product) { onAddProduct(product.id) }
+                }
+            }
+        }
+        CartPanel(
+            order = uiState.order,
+            isPaying = uiState.isPaying,
+            onChangeQty = onChangeQty,
+            onRemoveItem = onRemoveItem,
+            onApplyDiscount = onApplyDiscount,
+            onPayCash = onPayCash,
+            modifier = Modifier
+                .weight(1f)
+                .widthIn(min = 320.dp)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .padding(16.dp),
+        )
+    }
 }
 
 // ============== Sub-composables ==============
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CategoryStrip(categories: List<String>, selected: String?, onSelect: (String?) -> Unit) {
+private fun CategoryStrip(
+    categories: ImmutableList<String>,
+    selected: String?,
+    onSelect: (String?) -> Unit,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         FilterChip(selected == null, { onSelect(null) }, { Text("All") })
         categories.forEach { c ->
@@ -113,8 +156,15 @@ private fun ProductCard(product: Product, onAdd: () -> Unit) {
 }
 
 @Composable
-private fun CartPanel(state: PosViewModel.UiState, vm: PosViewModel, modifier: Modifier) {
-    val order = state.order
+private fun CartPanel(
+    order: com.example.sahmfood.domain.Order,
+    isPaying: Boolean,
+    onChangeQty: (String, Int) -> Unit,
+    onRemoveItem: (String) -> Unit,
+    onApplyDiscount: (Int) -> Unit,
+    onPayCash: () -> Unit,
+    modifier: Modifier,
+) {
     Column(modifier) {
         Row(
             Modifier.fillMaxWidth(),
@@ -139,9 +189,9 @@ private fun CartPanel(state: PosViewModel.UiState, vm: PosViewModel, modifier: M
                 items(order.items, key = { it.productId }) { item ->
                     CartItemRow(
                         item,
-                        onInc = { vm.changeQuantity(item.productId, item.quantity + 1) },
-                        onDec = { vm.changeQuantity(item.productId, item.quantity - 1) },
-                        onRemove = { vm.remove(item.productId) },
+                        onInc = { onChangeQty(item.productId, item.quantity + 1) },
+                        onDec = { onChangeQty(item.productId, item.quantity - 1) },
+                        onRemove = { onRemoveItem(item.productId) },
                     )
                 }
             }
@@ -158,16 +208,16 @@ private fun CartPanel(state: PosViewModel.UiState, vm: PosViewModel, modifier: M
 
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedButton({ vm.applyDiscount(10) }, Modifier.weight(1f)) { Text("10% off") }
-            OutlinedButton({ vm.applyDiscount(0) },  Modifier.weight(1f)) { Text("Reset") }
+            OutlinedButton({ onApplyDiscount(10) }, Modifier.weight(1f)) { Text("10% off") }
+            OutlinedButton({ onApplyDiscount(0) },  Modifier.weight(1f)) { Text("Reset") }
         }
         Spacer(Modifier.height(8.dp))
         Button(
-            onClick = vm::payCash,
-            enabled = !order.isEmpty && !state.isPaying,
+            onClick = onPayCash,
+            enabled = !order.isEmpty && !isPaying,
             modifier = Modifier.fillMaxWidth().height(56.dp),
         ) {
-            if (state.isPaying) CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+            if (isPaying) CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
             else Text("PAY CASH  •  ${order.total.formatted()}", fontWeight = FontWeight.Bold)
         }
     }
