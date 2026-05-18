@@ -84,11 +84,11 @@ class PosRepositoryImpl(private val db: SahmFoodDatabase) : PosRepository {
         }
 }
 
-private fun DbProduct.toDomain() = Product(id, sku, name, Money(priceMinor),
+private fun DbProduct.toDomain() = Product(id, sku, name, Money.fromMinor(priceMinor),
     taxBps.toInt(), category)
 
 private fun DbItem.toDomain() = OrderItem(productId, productName,
-    Money(unitMinor), taxBps.toInt(), quantity.toInt())
+    Money.fromMinor(unitMinor), taxBps.toInt(), quantity.toInt())
 
 private fun DbOrder.toDomain(items: List<OrderItem>) = Order(
     id = id,
