@@ -223,7 +223,7 @@ private fun CartItemRow(
                     }
                 }
                 Text(
-                    text = item.lineTotal.formatted(),
+                    text = item.total.formatted(),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.titleMedium,

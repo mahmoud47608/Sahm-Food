@@ -30,7 +30,7 @@ class MockReceiptPrinter : ReceiptPrinter {
         appendLine("Time:    ${o.paidAt}")
         line("-")
         o.items.forEach {
-            twoCol("${it.quantity}x ${it.productName.take(20)}", it.lineTotal.formatted())
+            twoCol("${it.quantity}x ${it.productName.take(20)}", it.total.formatted())
         }
         line("-")
         twoCol("Subtotal:", o.subtotal.formatted())

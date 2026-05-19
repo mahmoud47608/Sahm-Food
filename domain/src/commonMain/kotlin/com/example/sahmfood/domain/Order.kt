@@ -1,6 +1,5 @@
 package com.example.sahmfood.domain
 
-import kotlin.time.Clock
 import kotlin.time.Clock.System
 import kotlin.time.Instant
 import kotlin.random.Random
@@ -21,9 +20,9 @@ data class OrderItem(
     val taxRateBps: Int,
     val quantity: Int,
 ) {
-    val lineSubtotal: Money get() = unitPrice * quantity
-    val lineTax:      Money get() = lineSubtotal.percent(taxRateBps)
-    val lineTotal:    Money get() = lineSubtotal + lineTax
+    val subtotal: Money get() = unitPrice * quantity
+    val tax:      Money get() = subtotal.percent(taxRateBps)
+    val total:    Money get() = subtotal + tax
 }
 
 enum class OrderStatus { DRAFT, PAID }
@@ -38,11 +37,11 @@ data class Order(
     val items: List<OrderItem> = emptyList(),
     val status: OrderStatus = OrderStatus.DRAFT,
     val discountBps: Int = 0,
-    val createdAt: Instant = Clock.System.now(),
+    val createdAt: Instant = System.now(),
     val paidAt: Instant? = null,
 ) {
-    val subtotal: Money get() = items.fold(Money.ZERO) { acc, i -> acc + i.lineSubtotal }
-    val tax:      Money get() = items.fold(Money.ZERO) { acc, i -> acc + i.lineTax }
+    val subtotal: Money get() = items.sumOfMoney { it.subtotal }
+    val tax:      Money get() = items.sumOfMoney { it.tax }
     val discount: Money get() = subtotal.percent(discountBps)
     val total:    Money get() = subtotal + tax - discount
 
@@ -50,8 +49,8 @@ data class Order(
     val isEmpty: Boolean get() = items.isEmpty()
 
     fun addItem(product: Product, qty: Int = 1): Order {
-        require(qty > 0)
-        check(status == OrderStatus.DRAFT)
+        require(qty > 0) { "Quantity must be positive" }
+        check(status == OrderStatus.DRAFT) { "Cannot modify a paid order" }
         val existing = items.indexOfFirst { it.productId == product.id }
         val newItems = if (existing >= 0) {
             items.toMutableList().also {
@@ -64,7 +63,7 @@ data class Order(
     }
 
     fun changeQuantity(productId: String, newQty: Int): Order {
-        check(status == OrderStatus.DRAFT)
+        check(status == OrderStatus.DRAFT) { "Cannot modify a paid order" }
         return if (newQty <= 0) removeItem(productId)
         else copy(items = items.map {
             if (it.productId == productId) it.copy(quantity = newQty) else it
@@ -72,23 +71,23 @@ data class Order(
     }
 
     fun removeItem(productId: String): Order {
-        check(status == OrderStatus.DRAFT)
+        check(status == OrderStatus.DRAFT) { "Cannot modify a paid order" }
         return copy(items = items.filterNot { it.productId == productId })
     }
 
     fun applyDiscount(percent: Int): Order {
-        require(percent in 0..100)
+        require(percent in 0..100) { "Discount percent must be 0..100" }
         return copy(discountBps = percent * 100)
     }
 
-    fun markPaid(now: Instant = Clock.System.now()): Order {
-        check(status == OrderStatus.DRAFT)
+    fun markPaid(now: Instant = System.now()): Order {
+        check(status == OrderStatus.DRAFT) { "Order is already paid" }
         require(!isEmpty) { "Cannot pay an empty order" }
         return copy(status = OrderStatus.PAID, paidAt = now)
     }
 
     companion object {
-        fun newDraft(branchId: String, cashierId: String, now: Instant = Clock.System.now()): Order =
+        fun newDraft(branchId: String, cashierId: String, now: Instant = System.now()): Order =
             Order(
                 id = newOrderId(),
                 orderNumber = newOrderNumber(),
@@ -103,4 +102,10 @@ data class Order(
         private fun newOrderNumber(): String =
             "A" + Random.nextInt(1000, 9999).toString()
     }
+}
+
+inline fun <T> Iterable<T>.sumOfMoney(selector: (T) -> Money): Money {
+    var sum = Money.ZERO
+    for (element in this) sum += selector(element)
+    return sum
 }
