@@ -25,7 +25,7 @@ class PosViewModel(
 
     init {
         viewModelScope.launch {
-            repository.observeProducts().collect { products ->
+            repository.getProducts().collect { products ->
                 _uiState.update { it.copy(products = products.toImmutableList()) }
             }
         }

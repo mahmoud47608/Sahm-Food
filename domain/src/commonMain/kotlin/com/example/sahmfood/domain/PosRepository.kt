@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface PosRepository {
 
-    fun observeProducts(): Flow<List<Product>>
+    fun getProducts(): Flow<List<Product>>
     suspend fun seedIfEmpty(menu: List<Product>)
     suspend fun saveOrder(order: Order, syncState: SyncState = SyncState.PENDING)
     suspend fun trySyncPending(upload: suspend (Order) -> Result<Unit>): SyncReport

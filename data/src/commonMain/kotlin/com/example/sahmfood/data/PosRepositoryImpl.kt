@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 
@@ -26,7 +27,7 @@ class PosRepositoryImpl(private val db: SahmFoodDatabase) : PosRepository {
     private val products get() = db.productsQueries
     private val orders   get() = db.ordersQueries
 
-    override fun observeProducts(): Flow<List<Product>> =
+    override fun getProducts(): Flow<List<Product>> =
         products.selectAll().asFlow().mapToList(Dispatchers.Default)
             .map { rows -> rows.map { it.toDomain() } }
 
@@ -40,6 +41,7 @@ class PosRepositoryImpl(private val db: SahmFoodDatabase) : PosRepository {
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun saveOrder(order: Order, syncState: SyncState) =
         withContext(Dispatchers.Default) {
             db.transaction {
@@ -90,6 +92,7 @@ private fun DbProduct.toDomain() = Product(id, sku, name, Money.fromMinor(priceM
 private fun DbItem.toDomain() = OrderItem(productId, productName,
     Money.fromMinor(unitMinor), taxBps.toInt(), quantity.toInt())
 
+@OptIn(ExperimentalTime::class)
 private fun DbOrder.toDomain(items: List<OrderItem>) = Order(
     id = id,
     orderNumber = orderNumber,
