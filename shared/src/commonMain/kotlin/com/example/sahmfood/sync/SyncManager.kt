@@ -7,6 +7,9 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -21,11 +24,15 @@ class SyncManager(
 
     private val mutex = Mutex()
 
+    private val _events = MutableSharedFlow<SyncReport>(extraBufferCapacity = 4)
+    val events: SharedFlow<SyncReport> = _events.asSharedFlow()
+
 
     suspend fun syncNow(): SyncReport = mutex.withLock {
         val report = repo.trySyncPending(backend::submitOrder)
         if (!report.isIdle) {
             Napier.i { "[Sync] $report" }
+            _events.tryEmit(report)
         }
         report
     }

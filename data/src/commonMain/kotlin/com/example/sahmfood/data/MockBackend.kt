@@ -13,7 +13,7 @@ class MockBackend {
     private val mutex = Mutex()
     private val processedOrderIds = mutableSetOf<String>()
 
-    private val transientFailureRate = 0.15
+    private val transientFailureRate = 0.20
 
     suspend fun submitOrder(order: Order): Result<Unit> {
         delay(400)

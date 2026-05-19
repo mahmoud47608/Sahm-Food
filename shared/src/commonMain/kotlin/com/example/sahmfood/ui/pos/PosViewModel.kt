@@ -29,6 +29,22 @@ class PosViewModel(
                 _uiState.update { it.copy(products = products.toImmutableList()) }
             }
         }
+
+        // Surface background-sync results to the snackbar.
+        viewModelScope.launch {
+            syncManager.events.collect { report ->
+                val message = when {
+                    report.failed > 0 && report.succeeded > 0 ->
+                        "Synced ${report.succeeded}, failed ${report.failed}"
+                    report.failed > 0 ->
+                        "Sync failed (${report.failed} pending)"
+                    report.succeeded > 0 ->
+                        "Synced ${report.succeeded} order${if (report.succeeded > 1) "s" else ""} ✓"
+                    else -> return@collect
+                }
+                _uiState.update { it.copy(message = message) }
+            }
+        }
     }
 
     // ─── User intents ──────────────────────────────────────
