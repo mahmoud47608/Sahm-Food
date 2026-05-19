@@ -3,17 +3,6 @@ package com.example.sahmfood.data
 import com.example.sahmfood.domain.Money
 import com.example.sahmfood.domain.Product
 
-/**
- * بيانات seed أولية للقائمة.
- *
- * في إنتاج فعلي ده هييجي من:
- *   - استدعاء أول /menu للسيرفر، أو
- *   - bundle ثابت في app resources، أو
- *   - admin app على نفس الـ DB.
- *
- * هنا بنحطها inline في الـ data layer عشان الـ demo يقدر يشتغل
- * offline من أول تشغيل بدون أي setup.
- */
 fun seedMenu(): List<Product> = listOf(
     Product("p-001", "BURG-CLAS", "Classic Burger",        Money.of(95.00),  category = "Burgers"),
     Product("p-002", "BURG-DBLB", "Double Cheese Burger",  Money.of(135.00), category = "Burgers"),
