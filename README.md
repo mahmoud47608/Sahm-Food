@@ -312,7 +312,7 @@ For a single-branch tablet doing a few hundred orders a day, the system has tens
 - Kotlin 2.3.21
 - Compose Multiplatform 1.10.3 (Android + iOS)
 - SQLDelight 2.0.2
-- Koin 4.0.4
+- Koin 4.1.0
 - kotlinx-coroutines 1.10.2, kotlinx-datetime 0.6.2
 - Napier 2.7.1 (multiplatform logging)
 - AGP 8.11.2, Android compileSdk 36, minSdk 24
